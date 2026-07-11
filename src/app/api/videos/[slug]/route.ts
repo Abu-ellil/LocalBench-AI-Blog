@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getVideoBySlug as getLocal } from "@/lib/data";
-import { getVideoBySlug as getSanity } from "@/lib/sanity";
+import { getVideoBySlug as getSanity, mapSanityVideoToType } from "@/lib/sanity";
 
 // GET /api/videos/[slug]
 export async function GET(
@@ -12,9 +12,9 @@ export async function GET(
   try {
     const video = await getSanity(slug);
     if (video) {
-      return NextResponse.json(video);
+      return NextResponse.json(mapSanityVideoToType(video));
     }
-  } catch (e) {
+  } catch {
     // fallback
   }
 
