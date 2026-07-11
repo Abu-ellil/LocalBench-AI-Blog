@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 interface LeaderboardEntry {
   rank: number;
@@ -191,7 +192,14 @@ export default function LeaderboardPage() {
                           {entry.rank <= 3 ? MEDALS[entry.rank - 1] : entry.rank}
                         </span>
                       </td>
-                      <td className="lb-model-name">{entry.model}</td>
+                      <td className="lb-model-name">
+                        <Link href={`/leaderboard/${encodeURIComponent(entry.model)}`} style={{ color: "inherit", textDecoration: "none" }}>
+                          {entry.model}
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" style={{ marginRight: "0.35rem", opacity: 0.5, display: "inline", verticalAlign: "middle" }}>
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </Link>
+                      </td>
                       <td className="lb-col-score">
                         <div className="lb-score-cell">
                           <div className="lb-score-bar-bg">
@@ -232,7 +240,9 @@ export default function LeaderboardPage() {
                     <span className={`lb-rank-badge ${entry.rank <= 3 ? `lb-rank-${entry.rank}` : ""}`}>
                       {entry.rank <= 3 ? MEDALS[entry.rank - 1] : entry.rank}
                     </span>
-                    <span className="lb-mobile-model">{entry.model}</span>
+                    <Link href={`/leaderboard/${encodeURIComponent(entry.model)}`} className="lb-mobile-model" style={{ color: "inherit", textDecoration: "none" }}>
+                      {entry.model}
+                    </Link>
                   </div>
                   <div className="lb-mobile-score-bar">
                     <div className="lb-score-bar-bg" style={{ flex: 1 }}>
