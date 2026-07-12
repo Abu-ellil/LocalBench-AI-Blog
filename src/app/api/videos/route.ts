@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { videos } from "@/lib/data";
 import { getAllVideos, mapSanityVideoToType } from "@/lib/sanity";
+import type { Video } from "@/lib/types";
 
 // GET /api/videos
 // بيجرّب Sanity الأول، لو مفيش اتصال بيستخدم الـ local data
@@ -8,9 +9,9 @@ export async function GET() {
   try {
     const sanityVideos = await getAllVideos();
     if (sanityVideos && sanityVideos.length > 0) {
-      const mapped = sanityVideos.map(mapSanityVideoToType);
+      const mapped: Video[] = sanityVideos.map(mapSanityVideoToType);
       return NextResponse.json(
-        mapped.map((v) => ({
+        mapped.map((v: Video) => ({
           slug: v.slug,
           title: v.title,
           description: v.description,
