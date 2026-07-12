@@ -1,10 +1,54 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import LabCard from "@/components/LabCard";
 import ResourceCard from "@/components/ResourceCard";
-import { getLatestVideos, resources } from "@/lib/data";
+import type { Video, Resource } from "@/lib/types";
+
+interface VideoListItem {
+  slug: string;
+  title: string;
+  description: string;
+  category: string;
+  date: string;
+  youtubeId: string;
+  thumbnail: string;
+  modelCount: number;
+  promptCount: number;
+  fileCount: number;
+}
 
 export default function HomePage() {
-  const latestVideos = getLatestVideos(3);
+  const [latestVideos, setLatestVideos] = useState<VideoListItem[]>([]);
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/videos").then((r) => r.json()),
+      fetch("/api/resources").then((r) => r.json()),
+    ])
+      .then(([videosData, resourcesData]) => {
+        setLatestVideos(videosData.slice(0, 3));
+        setResources(resourcesData.slice(0, 5));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const toVideo = (v: VideoListItem): Video => ({
+    slug: v.slug,
+    title: v.title,
+    description: v.description,
+    category: v.category,
+    date: v.date,
+    youtubeId: v.youtubeId,
+    thumbnail: v.thumbnail,
+    models: [],
+    prompts: [],
+    files: [],
+  });
 
   return (
     <div className="fade-in">
@@ -57,7 +101,7 @@ export default function HomePage() {
                     <polygon points="23 7 16 12 23 17 23 7" />
                     <rect x="1" y="5" width="15" height="14" rx="2" />
                   </svg>
-                  <strong>{latestVideos.length}</strong> ملاحظة مختبر
+                  <strong>{loading ? "..." : latestVideos.length}</strong> ملاحظة مختبر
                 </div>
                 <div className="hero-stat-pill">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
@@ -122,11 +166,15 @@ export default function HomePage() {
             عرض الكل ←
           </Link>
         </div>
-        <div className="lab-grid">
-          {latestVideos.map((video) => (
-            <LabCard key={video.slug} video={video} />
-          ))}
-        </div>
+        {loading ? (
+          <p style={{ color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>جاري التحميل...</p>
+        ) : (
+          <div className="lab-grid">
+            {latestVideos.map((video) => (
+              <LabCard key={video.slug} video={toVideo(video)} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* =================== RESOURCES =================== */}
@@ -139,7 +187,7 @@ export default function HomePage() {
           </Link>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
-          {resources.slice(0, 5).map((resource) => (
+          {resources.map((resource) => (
             <ResourceCard key={resource.url} resource={resource} />
           ))}
         </div>

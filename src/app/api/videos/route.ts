@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
-import { videos } from "@/lib/data";
-import { getAllVideos, mapSanityVideoToType } from "@/lib/sanity";
+import { connectToDatabase } from "@/lib/mongodb";
 import type { Video } from "@/lib/types";
 
-// GET /api/videos
-// بيجرّب Sanity الأول، لو مفيش اتصال بيستخدم الـ local data
+// GET /api/videos — يجيب الفيديوهات من MongoDB
 export async function GET() {
   try {
-    const sanityVideos = await getAllVideos();
-    if (sanityVideos && sanityVideos.length > 0) {
-      const mapped: Video[] = sanityVideos.map(mapSanityVideoToType);
+    const { db } = await connectToDatabase();
+    const docs = await db
+      .collection("videos")
+      .find({})
+      .sort({ created_at: -1 })
+      .toArray();
+
+    if (docs.length > 0) {
       return NextResponse.json(
-        mapped.map((v: Video) => ({
+        docs.map((v: any) => ({
           slug: v.slug,
           title: v.title,
           description: v.description,
@@ -19,18 +22,20 @@ export async function GET() {
           date: v.date,
           youtubeId: v.youtubeId,
           thumbnail: v.thumbnail,
-          modelCount: v.models.length,
-          promptCount: v.prompts.length,
-          fileCount: v.files.length,
+          modelCount: (v.models || []).length,
+          promptCount: (v.prompts || []).length,
+          fileCount: (v.files || []).length,
         }))
       );
     }
   } catch {
-    // Sanity مش متاح — fallback للـ local data
+    // MongoDB مش متاح
   }
 
+  // Fallback: local data (مؤقت)
+  const { videos } = await import("@/lib/data");
   return NextResponse.json(
-    videos.map((v) => ({
+    videos.map((v: Video) => ({
       slug: v.slug,
       title: v.title,
       description: v.description,

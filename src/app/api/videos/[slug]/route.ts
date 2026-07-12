@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getVideoBySlug as getLocal } from "@/lib/data";
-import { getVideoBySlug as getSanity, mapSanityVideoToType } from "@/lib/sanity";
+import { connectToDatabase } from "@/lib/mongodb";
 
-// GET /api/videos/[slug]
+// GET /api/videos/[slug] — يجيب فيديو واحد من MongoDB بالكامل (prompts, files, models)
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ slug: string }> }
@@ -10,15 +9,21 @@ export async function GET(
   const { slug } = await params;
 
   try {
-    const video = await getSanity(slug);
+    const { db } = await connectToDatabase();
+    const video = await db.collection("videos").findOne({ slug });
+
     if (video) {
-      return NextResponse.json(mapSanityVideoToType(video));
+      // نشيل _id لأنه مش serializable
+      const { _id, ...rest } = video;
+      return NextResponse.json(rest);
     }
   } catch {
-    // fallback
+    // MongoDB مش متاح
   }
 
-  const localVideo = getLocal(slug);
+  // Fallback: local data (مؤقت)
+  const { getVideoBySlug } = await import("@/lib/data");
+  const localVideo = getVideoBySlug(slug);
   if (!localVideo) {
     return NextResponse.json({ error: "الفيديو غير موجود" }, { status: 404 });
   }
