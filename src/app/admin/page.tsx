@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { GpusManager, SetupManager, LeaderboardManager } from "./managers";
 
 const ADMIN_PASSWORD = "localbench-admin-2025";
 
@@ -73,14 +74,32 @@ export default function AdminPage() {
 
 // ============================================================
 function TabSection() {
-  const [tab, setTab] = useState<"videos" | "resources">("videos");
+  const [tab, setTab] = useState<"videos" | "resources" | "gpus" | "setup" | "leaderboard">("videos");
+  const tabs = [
+    { id: "videos", icon: "📺", label: "الفيديوهات" },
+    { id: "resources", icon: "📚", label: "المصادر" },
+    { id: "leaderboard", icon: "📊", label: "المتصدرين" },
+    { id: "gpus", icon: "💾", label: "كروت الشاشة" },
+    { id: "setup", icon: "⚙️", label: "الإعدادات" },
+  ] as const;
+
   return (
     <div>
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "2rem" }}>
-        <button onClick={() => setTab("videos")} className={`filter-pill ${tab === "videos" ? "filter-pill-active" : "filter-pill-inactive"}`} style={{ border: "none", cursor: "pointer", fontFamily: "inherit" }}>📺 الفيديوهات</button>
-        <button onClick={() => setTab("resources")} className={`filter-pill ${tab === "resources" ? "filter-pill-active" : "filter-pill-inactive"}`} style={{ border: "none", cursor: "pointer", fontFamily: "inherit" }}>📚 المصادر</button>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "2rem", flexWrap: "wrap" }}>
+        {tabs.map((t) => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`filter-pill ${tab === t.id ? "filter-pill-active" : "filter-pill-inactive"}`}
+            style={{ border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+            {t.icon} {t.label}
+          </button>
+        ))}
       </div>
-      {tab === "videos" ? <VideosManager /> : <ResourcesManager />}
+
+      {tab === "videos" && <VideosManager />}
+      {tab === "resources" && <ResourcesManager />}
+      {tab === "leaderboard" && <LeaderboardManager />}
+      {tab === "gpus" && <GpusManager />}
+      {tab === "setup" && <SetupManager />}
     </div>
   );
 }
