@@ -155,6 +155,7 @@ function VideosManager() {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   // Form state
@@ -173,10 +174,55 @@ function VideosManager() {
 
   useEffect(loadVideos, []);
 
+  function resetForm() {
+    setSlug(""); setTitle(""); setDescription(""); setCategory(""); setYoutubeId("");
+    setEditingSlug(null);
+    setShowForm(false);
+  }
+
+  // Start edit — يجيب الفيديو كامل ويملأ الفورم
+  async function handleEdit(v: VideoItem) {
+    setEditingSlug(v.slug);
+    setShowForm(true);
+    setMsg(null);
+
+    // GET full video data
+    try {
+      const res = await fetch(`/api/videos/${v.slug}`);
+      const data = await res.json();
+      setTitle(data.title || "");
+      setDescription(data.description || "");
+      setCategory(data.category || "");
+      setYoutubeId(data.youtubeId || "");
+      setSlug(v.slug);
+    } catch {
+      setMsg({ type: "err", text: "❌ فشل تحميل بيانات الفيديو" });
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
 
+    // Edit mode
+    if (editingSlug) {
+      const res = await fetch(`/api/videos/${editingSlug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, description, category, youtubeId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMsg({ type: "ok", text: `✅ تم تعديل "${title}"` });
+        resetForm();
+        loadVideos();
+      } else {
+        setMsg({ type: "err", text: `❌ ${data.error || "خطأ"}` });
+      }
+      return;
+    }
+
+    // Add mode
     const finalSlug = slug || title.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w\-]/g, "").slice(0, 60);
 
     const res = await fetch("/api/videos", {
@@ -188,8 +234,7 @@ function VideosManager() {
 
     if (res.ok) {
       setMsg({ type: "ok", text: `✅ تم إضافة "${title}"` });
-      setSlug(""); setTitle(""); setDescription(""); setCategory(""); setYoutubeId("");
-      setShowForm(false);
+      resetForm();
       loadVideos();
     } else {
       setMsg({ type: "err", text: `❌ ${data.error || "خطأ"}` });
@@ -225,35 +270,46 @@ function VideosManager() {
         </div>
       )}
 
-      {/* Add button */}
-      <button
-        onClick={() => setShowForm(!showForm)}
-        className="btn btn-primary"
-        style={{ marginBottom: "1.5rem" }}
-      >
-        {showForm ? "إلغاء" : "+ إضافة فيديو"}
-      </button>
+      {/* Add/Edit button */}
+      {!showForm && (
+        <button
+          onClick={() => { resetForm(); setShowForm(true); }}
+          className="btn btn-primary"
+          style={{ marginBottom: "1.5rem" }}
+        >
+          + إضافة فيديو
+        </button>
+      )}
 
-      {/* Form */}
+      {/* Form (Add or Edit) */}
       {showForm && (
         <form onSubmit={handleSubmit} className="card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-          <h3 style={{ color: "var(--text)", fontSize: "1rem", fontWeight: 700, marginBottom: "1rem" }}>
-            فيديو جديد
-          </h3>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+            <h3 style={{ color: "var(--text)", fontSize: "1rem", fontWeight: 700 }}>
+              {editingSlug ? `✏️ تعديل: ${editingSlug}` : "فيديو جديد"}
+            </h3>
+            <button type="button" onClick={resetForm} className="btn btn-ghost" style={{ fontSize: "0.78rem" }}>✕ إغلاق</button>
+          </div>
           <div style={{ display: "grid", gap: "0.85rem" }}>
             <AdminInput label="العنوان *" value={title} onChange={setTitle} placeholder="مثال: تجربة Qwen 3 على AMD" required />
             <AdminInput label="YouTube Video ID *" value={youtubeId} onChange={setYoutubeId} placeholder="مثال: YQR6u0Gwdao" required />
-            <AdminInput label="Slug (اختياري — يتولد تلقائياً)" value={slug} onChange={setSlug} placeholder="qwen3-amd-test" />
+            {!editingSlug && (
+              <AdminInput label="Slug (اختياري — يتولد تلقائياً)" value={slug} onChange={setSlug} placeholder="qwen3-amd-test" />
+            )}
             <AdminInput label="التصنيف" value={category} onChange={setCategory} placeholder="اختبار LLM" />
             <AdminTextarea label="الوصف" value={description} onChange={setDescription} placeholder="وصف الفيديو..." />
           </div>
           <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
-            <button type="submit" className="btn btn-primary">حفظ</button>
-            <button type="button" onClick={() => setShowForm(false)} className="btn btn-ghost">إلغاء</button>
+            <button type="submit" className="btn btn-primary">
+              {editingSlug ? "💾 حفظ التعديلات" : "حفظ"}
+            </button>
+            <button type="button" onClick={resetForm} className="btn btn-ghost">إلغاء</button>
           </div>
-          <p style={{ color: "var(--text-3)", fontSize: "0.72rem", marginTop: "0.75rem" }}>
-            💡 الـ prompts والـ output files تقدر تضيفها بعدين من MongoDB Atlas أو API
-          </p>
+          {!editingSlug && (
+            <p style={{ color: "var(--text-3)", fontSize: "0.72rem", marginTop: "0.75rem" }}>
+              💡 الـ prompts والـ output files تقدر تضيفها بعدين من MongoDB Atlas أو API
+            </p>
+          )}
         </form>
       )}
 
@@ -280,24 +336,43 @@ function VideosManager() {
                   <span style={{ color: "var(--text-3)", fontSize: "0.72rem" }}>{v.fileCount} files</span>
                 </div>
               </div>
-              <button
-                onClick={() => handleDelete(v.slug)}
-                style={{
-                  background: "rgba(248,113,113,0.1)",
-                  border: "1px solid rgba(248,113,113,0.3)",
-                  borderRadius: "6px",
-                  padding: "0.4rem 0.6rem",
-                  cursor: "pointer",
-                  color: "var(--danger)",
-                  flexShrink: 0,
-                }}
-                title="حذف"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-              </button>
+              {/* Edit + Delete buttons */}
+              <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0 }}>
+                <button
+                  onClick={() => handleEdit(v)}
+                  style={{
+                    background: "rgba(79,128,255,0.1)",
+                    border: "1px solid rgba(79,128,255,0.3)",
+                    borderRadius: "6px",
+                    padding: "0.4rem 0.6rem",
+                    cursor: "pointer",
+                    color: "var(--accent)",
+                  }}
+                  title="تعديل"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => handleDelete(v.slug)}
+                  style={{
+                    background: "rgba(248,113,113,0.1)",
+                    border: "1px solid rgba(248,113,113,0.3)",
+                    borderRadius: "6px",
+                    padding: "0.4rem 0.6rem",
+                    cursor: "pointer",
+                    color: "var(--danger)",
+                  }}
+                  title="حذف"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              </div>
             </div>
           ))}
         </div>
