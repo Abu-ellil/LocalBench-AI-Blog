@@ -2,47 +2,16 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const ADMIN_PASSWORD = "localbench-admin-2025";
 
 interface VideoItem {
-  slug: string;
-  title: string;
-  category: string;
-  date: string;
-  youtubeId: string;
-  modelCount: number;
-  promptCount: number;
-  fileCount: number;
+  slug: string; title: string; category: string; date: string; youtubeId: string;
+  modelCount: number; promptCount: number; fileCount: number;
 }
-
 interface ResourceItem {
-  title: string;
-  url: string;
-  domain: string;
-  category: string;
-  description: string;
-}
-
-interface ModelEntry {
-  name: string;
-  quantization: string;
-  hardware: string;
-  type: "local" | "cloud";
-}
-
-interface PromptEntry {
-  id: number;
-  title: string;
-  content: string;
-}
-
-interface FileEntry {
-  id: number;
-  modelName: string;
-  promptTitle: string;
-  previewHtml: string;
-  sourceCode: string;
+  title: string; url: string; domain: string; category: string; description: string;
 }
 
 export default function AdminPage() {
@@ -58,9 +27,7 @@ export default function AdminPage() {
     if (pwInput === ADMIN_PASSWORD) {
       sessionStorage.setItem("admin_authed", "1");
       setAuthed(true);
-    } else {
-      setPwError(true);
-    }
+    } else { setPwError(true); }
   }
 
   function handleLogout() {
@@ -75,33 +42,16 @@ export default function AdminPage() {
         <div className="card" style={{ padding: "2.5rem" }}>
           <div style={{ textAlign: "center", marginBottom: "1.5rem" }}>
             <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>🔐</div>
-            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.3rem", fontWeight: 800, color: "var(--text)" }}>
-              Admin Dashboard
-            </h1>
-            <p style={{ color: "var(--text-3)", fontSize: "0.82rem", marginTop: "0.3rem" }}>
-              LocalBench AI — لوحة التحكم
-            </p>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.3rem", fontWeight: 800, color: "var(--text)" }}>Admin Dashboard</h1>
+            <p style={{ color: "var(--text-3)", fontSize: "0.82rem", marginTop: "0.3rem" }}>LocalBench AI — لوحة التحكم</p>
           </div>
-          <input
-            type="password"
-            className="videos-search-input"
-            style={{ textAlign: "center", padding: "0.75rem 1rem", marginBottom: "0.75rem" }}
-            placeholder="كلمة المرور"
-            value={pwInput}
+          <input type="password" className="videos-search-input" style={{ textAlign: "center", padding: "0.75rem 1rem", marginBottom: "0.75rem" }}
+            placeholder="كلمة المرور" value={pwInput}
             onChange={(e) => { setPwInput(e.target.value); setPwError(false); }}
-            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-          />
-          {pwError && (
-            <p style={{ color: "var(--danger)", fontSize: "0.78rem", marginBottom: "0.5rem", textAlign: "center" }}>
-              كلمة مرور خاطئة
-            </p>
-          )}
-          <button onClick={handleLogin} className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
-            دخول
-          </button>
-          <Link href="/" style={{ display: "block", textAlign: "center", marginTop: "1rem", color: "var(--text-3)", fontSize: "0.8rem" }}>
-            ← العودة للموقع
-          </Link>
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
+          {pwError && <p style={{ color: "var(--danger)", fontSize: "0.78rem", marginBottom: "0.5rem", textAlign: "center" }}>كلمة مرور خاطئة</p>}
+          <button onClick={handleLogin} className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>دخول</button>
+          <Link href="/" style={{ display: "block", textAlign: "center", marginTop: "1rem", color: "var(--text-3)", fontSize: "0.8rem" }}>← العودة للموقع</Link>
         </div>
       </div>
     );
@@ -111,148 +61,63 @@ export default function AdminPage() {
     <div className="container" style={{ paddingTop: "2rem", paddingBottom: "4rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
         <div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 800, color: "var(--text)" }}>
-            ⚙️ Admin Dashboard
-          </h1>
-          <p style={{ color: "var(--text-3)", fontSize: "0.82rem" }}>
-            إدارة الفيديوهات والمصادر
-          </p>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 800, color: "var(--text)" }}>⚙️ Admin Dashboard</h1>
+          <p style={{ color: "var(--text-3)", fontSize: "0.82rem" }}>إدارة الفيديوهات والمصادر</p>
         </div>
-        <button onClick={handleLogout} className="btn btn-outline" style={{ fontSize: "0.8rem" }}>
-          خروج
-        </button>
+        <button onClick={handleLogout} className="btn btn-outline" style={{ fontSize: "0.8rem" }}>خروج</button>
       </div>
-
       <TabSection />
     </div>
   );
 }
 
 // ============================================================
-// TAB SECTION
-// ============================================================
-
 function TabSection() {
   const [tab, setTab] = useState<"videos" | "resources">("videos");
-
   return (
     <div>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "2rem" }}>
-        <button
-          onClick={() => setTab("videos")}
-          className={`filter-pill ${tab === "videos" ? "filter-pill-active" : "filter-pill-inactive"}`}
-          style={{ border: "none", cursor: "pointer", fontFamily: "inherit" }}
-        >
-          📺 الفيديوهات
-        </button>
-        <button
-          onClick={() => setTab("resources")}
-          className={`filter-pill ${tab === "resources" ? "filter-pill-active" : "filter-pill-inactive"}`}
-          style={{ border: "none", cursor: "pointer", fontFamily: "inherit" }}
-        >
-          📚 المصادر
-        </button>
+        <button onClick={() => setTab("videos")} className={`filter-pill ${tab === "videos" ? "filter-pill-active" : "filter-pill-inactive"}`} style={{ border: "none", cursor: "pointer", fontFamily: "inherit" }}>📺 الفيديوهات</button>
+        <button onClick={() => setTab("resources")} className={`filter-pill ${tab === "resources" ? "filter-pill-active" : "filter-pill-inactive"}`} style={{ border: "none", cursor: "pointer", fontFamily: "inherit" }}>📚 المصادر</button>
       </div>
-
       {tab === "videos" ? <VideosManager /> : <ResourcesManager />}
     </div>
   );
 }
 
 // ============================================================
-// VIDEOS MANAGER — Full CRUD with Models, Prompts, Files
+// VIDEOS MANAGER — قائمة + إضافة سريعة + حذف + تعديل (في صفحة منفصلة)
 // ============================================================
-
 function VideosManager() {
+  const router = useRouter();
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
-  // Basic fields
-  const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
   const [youtubeId, setYoutubeId] = useState("");
-
-  // Dynamic arrays
-  const [models, setModels] = useState<ModelEntry[]>([]);
-  const [prompts, setPrompts] = useState<PromptEntry[]>([]);
-  const [files, setFiles] = useState<FileEntry[]>([]);
+  const [category, setCategory] = useState("");
+  const [description, setDescription] = useState("");
 
   function loadVideos() {
-    fetch("/api/videos")
-      .then((r) => r.json())
-      .then((d) => { setVideos(d); setLoading(false); })
-      .catch(() => setLoading(false));
+    fetch("/api/videos").then((r) => r.json()).then((d) => { setVideos(d); setLoading(false); }).catch(() => setLoading(false));
   }
-
   useEffect(loadVideos, []);
 
-  function resetForm() {
-    setSlug(""); setTitle(""); setDescription(""); setCategory(""); setYoutubeId("");
-    setModels([]); setPrompts([]); setFiles([]);
-    setEditingSlug(null);
-    setShowForm(false);
-  }
-
-  async function handleEdit(v: VideoItem) {
-    setEditingSlug(v.slug);
-    setShowForm(true);
-    setMsg(null);
-
-    try {
-      const res = await fetch(`/api/videos/${v.slug}`);
-      const data = await res.json();
-      setTitle(data.title || "");
-      setDescription(data.description || "");
-      setCategory(data.category || "");
-      setYoutubeId(data.youtubeId || "");
-      setSlug(v.slug);
-      setModels(data.models || []);
-      setPrompts(data.prompts || []);
-      setFiles(data.files || []);
-    } catch {
-      setMsg({ type: "err", text: "❌ فشل تحميل بيانات الفيديو" });
-    }
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleQuickAdd(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-
-    const payload = { title, description, category, youtubeId, models, prompts, files };
-
-    if (editingSlug) {
-      const res = await fetch(`/api/videos/${editingSlug}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setMsg({ type: "ok", text: `✅ تم تعديل "${title}"` });
-        resetForm();
-        loadVideos();
-      } else {
-        setMsg({ type: "err", text: `❌ ${data.error || "خطأ"}` });
-      }
-      return;
-    }
-
-    const finalSlug = slug || title.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w\-]/g, "").slice(0, 60);
+    const slug = title.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w\-]/g, "").slice(0, 60);
     const res = await fetch("/api/videos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: finalSlug, ...payload }),
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug, title, youtubeId, category, description }),
     });
     const data = await res.json();
-
     if (res.ok) {
-      setMsg({ type: "ok", text: `✅ تم إضافة "${title}"` });
-      resetForm();
+      setMsg({ type: "ok", text: `✅ تم إضافة "${title}" — اضغط ✏️ لتكملة البيانات` });
+      setTitle(""); setYoutubeId(""); setCategory(""); setDescription("");
+      setShowQuickAdd(false);
       loadVideos();
     } else {
       setMsg({ type: "err", text: `❌ ${data.error || "خطأ"}` });
@@ -261,138 +126,44 @@ function VideosManager() {
 
   async function handleDelete(slug: string) {
     if (!confirm(`حذف "${slug}"؟`)) return;
-    const res = await fetch("/api/videos", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug }),
-    });
-    if (res.ok) {
-      setMsg({ type: "ok", text: `🗑️ تم حذف "${slug}"` });
-      loadVideos();
-    }
+    const res = await fetch("/api/videos", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug }) });
+    if (res.ok) { setMsg({ type: "ok", text: `🗑️ تم حذف "${slug}"` }); loadVideos(); }
   }
 
   return (
     <div>
       {msg && (
-        <div style={{
-          padding: "0.75rem 1rem", marginBottom: "1rem", borderRadius: "8px",
+        <div style={{ padding: "0.75rem 1rem", marginBottom: "1rem", borderRadius: "8px",
           background: msg.type === "ok" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
           border: `1px solid ${msg.type === "ok" ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`,
-          color: msg.type === "ok" ? "var(--success)" : "var(--danger)",
-          fontSize: "0.85rem",
-        }}>
+          color: msg.type === "ok" ? "var(--success)" : "var(--danger)", fontSize: "0.85rem" }}>
           {msg.text}
         </div>
       )}
 
-      {!showForm && (
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="btn btn-primary" style={{ marginBottom: "1.5rem" }}>
-          + إضافة فيديو
-        </button>
-      )}
+      <button onClick={() => setShowQuickAdd(!showQuickAdd)} className="btn btn-primary" style={{ marginBottom: "1.5rem" }}>
+        {showQuickAdd ? "إلغاء" : "+ إضافة فيديو"}
+      </button>
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-            <h3 style={{ color: "var(--text)", fontSize: "1rem", fontWeight: 700 }}>
-              {editingSlug ? `✏️ تعديل: ${editingSlug}` : "فيديو جديد"}
-            </h3>
-            <button type="button" onClick={resetForm} className="btn btn-ghost" style={{ fontSize: "0.78rem" }}>✕ إغلاق</button>
+      {showQuickAdd && (
+        <form onSubmit={handleQuickAdd} className="card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
+          <h3 style={{ color: "var(--text)", fontSize: "1rem", fontWeight: 700, marginBottom: "1rem" }}>إضافة سريعة</h3>
+          <div style={{ display: "grid", gap: "0.85rem" }}>
+            <SimpleInput label="العنوان *" value={title} onChange={setTitle} placeholder="عنوان الفيديو" required />
+            <SimpleInput label="YouTube ID *" value={youtubeId} onChange={setYoutubeId} placeholder="YQR6u0Gwdao" required />
+            <SimpleInput label="التصنيف" value={category} onChange={setCategory} placeholder="اختبار LLM" />
+            <SimpleTextarea label="الوصف" value={description} onChange={setDescription} placeholder="وصف مختصر..." />
           </div>
-
-          {/* Basic Info */}
-          <SectionLabel>📋 المعلومات الأساسية</SectionLabel>
-          <div style={{ display: "grid", gap: "0.85rem", marginBottom: "1.5rem" }}>
-            <AdminInput label="العنوان *" value={title} onChange={setTitle} placeholder="مثال: تجربة Qwen 3 على AMD" required />
-            <AdminInput label="YouTube Video ID *" value={youtubeId} onChange={setYoutubeId} placeholder="مثال: YQR6u0Gwdao" required />
-            {!editingSlug && (
-              <AdminInput label="Slug (اختياري — يتولد تلقائياً)" value={slug} onChange={setSlug} placeholder="qwen3-amd-test" />
-            )}
-            <AdminInput label="التصنيف" value={category} onChange={setCategory} placeholder="اختبار LLM" />
-            <AdminTextarea label="الوصف" value={description} onChange={setDescription} placeholder="وصف الفيديو..." />
-          </div>
-
-          {/* Models Section */}
-          <SectionLabel>🧠 النماذج المختبرة ({models.length})</SectionLabel>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.5rem" }}>
-            {models.map((m, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto auto", gap: "0.5rem", alignItems: "end" }}>
-                <AdminInput label="الاسم" value={m.name} onChange={(v) => { const a = [...models]; a[i] = { ...a[i], name: v }; setModels(a); }} placeholder="Qwen 3.5 9B" />
-                <AdminInput label="Quantization" value={m.quantization} onChange={(v) => { const a = [...models]; a[i] = { ...a[i], quantization: v }; setModels(a); }} placeholder="Q4_K_M" />
-                <AdminInput label="العتاد" value={m.hardware} onChange={(v) => { const a = [...models]; a[i] = { ...a[i], hardware: v }; setModels(a); }} placeholder="RX 6600 XT 8GB" />
-                <select
-                  value={m.type}
-                  onChange={(e) => { const a = [...models]; a[i] = { ...a[i], type: e.target.value as "local" | "cloud" }; setModels(a); }}
-                  className="videos-search-input"
-                  style={{ padding: "0.6rem 0.85rem", height: "38px", width: "90px" }}
-                >
-                  <option value="local">محلي</option>
-                  <option value="cloud">سحابي</option>
-                </select>
-                <MiniBtn onClick={() => setModels(models.filter((_, j) => j !== i))} color="danger" title="حذف">🗑️</MiniBtn>
-              </div>
-            ))}
-            <MiniBtn onClick={() => setModels([...models, { name: "", quantization: "", hardware: "", type: "local" }])} color="accent">
-              + إضافة نموذج
-            </MiniBtn>
-          </div>
-
-          {/* Prompts Section */}
-          <SectionLabel>📝 الـ Prompts ({prompts.length})</SectionLabel>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.5rem" }}>
-            {prompts.map((p, i) => (
-              <div key={i} className="card" style={{ padding: "1rem", background: "var(--bg)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                  <span style={{ color: "var(--accent)", fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>#{p.id}</span>
-                  <MiniBtn onClick={() => setPrompts(prompts.filter((_, j) => j !== i))} color="danger" title="حذف">🗑️</MiniBtn>
-                </div>
-                <div style={{ display: "grid", gap: "0.5rem" }}>
-                  <AdminInput label="العنوان" value={p.title} onChange={(v) => { const a = [...prompts]; a[i] = { ...a[i], title: v }; setPrompts(a); }} placeholder="اختبار كتابة كود React" />
-                  <AdminTextarea label="نص الـ Prompt" value={p.content} onChange={(v) => { const a = [...prompts]; a[i] = { ...a[i], content: v }; setPrompts(a); }} placeholder="اكتب الـ prompt كامل..." />
-                </div>
-              </div>
-            ))}
-            <MiniBtn onClick={() => setPrompts([...prompts, { id: prompts.length + 1, title: "", content: "" }])} color="accent">
-              + إضافة Prompt
-            </MiniBtn>
-          </div>
-
-          {/* Output Files Section */}
-          <SectionLabel>📂 ملفات الإخراج / Live HTML ({files.length})</SectionLabel>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.5rem" }}>
-            {files.map((f, i) => (
-              <div key={i} className="card" style={{ padding: "1rem", background: "var(--bg)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                  <span style={{ color: "var(--accent)", fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>#{f.id}</span>
-                  <MiniBtn onClick={() => setFiles(files.filter((_, j) => j !== i))} color="danger" title="حذف">🗑️</MiniBtn>
-                </div>
-                <div style={{ display: "grid", gap: "0.5rem" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-                    <AdminInput label="اسم النموذج" value={f.modelName} onChange={(v) => { const a = [...files]; a[i] = { ...a[i], modelName: v }; setFiles(a); }} placeholder="Qwen 3.5 9B" />
-                    <AdminInput label="عنوان الـ Prompt" value={f.promptTitle} onChange={(v) => { const a = [...files]; a[i] = { ...a[i], promptTitle: v }; setFiles(a); }} placeholder="React Dashboard" />
-                  </div>
-                  <AdminTextarea label="HTML للمعاينة (Preview)" value={f.previewHtml} onChange={(v) => { const a = [...files]; a[i] = { ...a[i], previewHtml: v }; setFiles(a); }} placeholder="<!DOCTYPE html>..." />
-                  <AdminTextarea label="الكود المصدري (Source Code)" value={f.sourceCode} onChange={(v) => { const a = [...files]; a[i] = { ...a[i], sourceCode: v }; setFiles(a); }} placeholder="import React..." />
-                </div>
-              </div>
-            ))}
-            <MiniBtn onClick={() => setFiles([...files, { id: files.length + 1, modelName: "", promptTitle: "", previewHtml: "", sourceCode: "" }])} color="accent">
-              + إضافة Output File
-            </MiniBtn>
-          </div>
-
-          {/* Submit */}
           <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
-            <button type="submit" className="btn btn-primary">
-              {editingSlug ? "💾 حفظ التعديلات" : "حفظ"}
-            </button>
-            <button type="button" onClick={resetForm} className="btn btn-ghost">إلغاء</button>
+            <button type="submit" className="btn btn-primary">إضافة +</button>
+            <button type="button" onClick={() => setShowQuickAdd(false)} className="btn btn-ghost">إلغاء</button>
           </div>
+          <p style={{ color: "var(--text-3)", fontSize: "0.72rem", marginTop: "0.75rem" }}>
+            💡 بعد الإضافة، اضغط ✏️ عشان تعدّل الـ Models والـ Prompts والـ Files في صفحة منفصلة
+          </p>
         </form>
       )}
 
-      {/* List */}
       {loading ? (
         <p style={{ color: "var(--text-3)" }}>جاري التحميل...</p>
       ) : (
@@ -401,14 +172,10 @@ function VideosManager() {
             <div key={v.slug} className="card" style={{ padding: "1rem 1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
-                  <span style={{ color: "var(--accent)", fontSize: "0.68rem", fontFamily: "var(--font-mono)", background: "#4f80ff14", padding: "0.1rem 0.5rem", borderRadius: "4px" }}>
-                    {v.category}
-                  </span>
+                  <span style={{ color: "var(--accent)", fontSize: "0.68rem", fontFamily: "var(--font-mono)", background: "#4f80ff14", padding: "0.1rem 0.5rem", borderRadius: "4px" }}>{v.category}</span>
                   <span style={{ color: "var(--text-3)", fontSize: "0.68rem" }}>{v.date}</span>
                 </div>
-                <h4 style={{ color: "var(--text)", fontSize: "0.88rem", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {v.title}
-                </h4>
+                <h4 style={{ color: "var(--text)", fontSize: "0.88rem", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.title}</h4>
                 <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.3rem" }}>
                   <span style={{ color: "var(--text-3)", fontSize: "0.72rem" }}>{v.modelCount} models</span>
                   <span style={{ color: "var(--text-3)", fontSize: "0.72rem" }}>{v.promptCount} prompts</span>
@@ -416,9 +183,9 @@ function VideosManager() {
                 </div>
               </div>
               <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0 }}>
-                <button onClick={() => handleEdit(v)} style={{ background: "rgba(79,128,255,0.1)", border: "1px solid rgba(79,128,255,0.3)", borderRadius: "6px", padding: "0.4rem 0.6rem", cursor: "pointer", color: "var(--accent)" }} title="تعديل">
+                <Link href={`/admin/edit/${encodeURIComponent(v.slug)}`} style={{ background: "rgba(79,128,255,0.1)", border: "1px solid rgba(79,128,255,0.3)", borderRadius: "6px", padding: "0.4rem 0.6rem", color: "var(--accent)", display: "flex", alignItems: "center" }} title="تعديل">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                </button>
+                </Link>
                 <button onClick={() => handleDelete(v.slug)} style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: "6px", padding: "0.4rem 0.6rem", cursor: "pointer", color: "var(--danger)" }} title="حذف">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                 </button>
@@ -434,82 +201,55 @@ function VideosManager() {
 // ============================================================
 // RESOURCES MANAGER
 // ============================================================
-
 function ResourcesManager() {
   const [resources, setResources] = useState<ResourceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
 
   function loadResources() {
-    fetch("/api/resources")
-      .then((r) => r.json())
-      .then((d) => { setResources(d); setLoading(false); })
-      .catch(() => setLoading(false));
+    fetch("/api/resources").then((r) => r.json()).then((d) => { setResources(d); setLoading(false); }).catch(() => setLoading(false));
   }
-
   useEffect(loadResources, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null);
-    const res = await fetch("/api/resources", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, url, description, category }),
-    });
+    const res = await fetch("/api/resources", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, url, description, category }) });
     const data = await res.json();
-    if (res.ok) {
-      setMsg({ type: "ok", text: `✅ تم إضافة "${title}"` });
-      setTitle(""); setUrl(""); setDescription(""); setCategory("");
-      setShowForm(false);
-      loadResources();
-    } else {
-      setMsg({ type: "err", text: `❌ ${data.error || "خطأ"}` });
-    }
+    if (res.ok) { setMsg({ type: "ok", text: `✅ تم إضافة "${title}"` }); setTitle(""); setUrl(""); setDescription(""); setCategory(""); setShowForm(false); loadResources(); }
+    else { setMsg({ type: "err", text: `❌ ${data.error || "خطأ"}` }); }
   }
 
   async function handleDelete(url: string) {
     if (!confirm("حذف؟")) return;
-    const res = await fetch("/api/resources", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
+    const res = await fetch("/api/resources", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
     if (res.ok) { setMsg({ type: "ok", text: "🗑️ تم الحذف" }); loadResources(); }
   }
 
   return (
     <div>
       {msg && (
-        <div style={{
-          padding: "0.75rem 1rem", marginBottom: "1rem", borderRadius: "8px",
+        <div style={{ padding: "0.75rem 1rem", marginBottom: "1rem", borderRadius: "8px",
           background: msg.type === "ok" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
           border: `1px solid ${msg.type === "ok" ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`,
-          color: msg.type === "ok" ? "var(--success)" : "var(--danger)",
-          fontSize: "0.85rem",
-        }}>
+          color: msg.type === "ok" ? "var(--success)" : "var(--danger)", fontSize: "0.85rem" }}>
           {msg.text}
         </div>
       )}
-
-      <button onClick={() => setShowForm(!showForm)} className="btn btn-primary" style={{ marginBottom: "1.5rem" }}>
-        {showForm ? "إلغاء" : "+ إضافة مصدر"}
-      </button>
-
+      <button onClick={() => setShowForm(!showForm)} className="btn btn-primary" style={{ marginBottom: "1.5rem" }}>{showForm ? "إلغاء" : "+ إضافة مصدر"}</button>
       {showForm && (
         <form onSubmit={handleSubmit} className="card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
           <h3 style={{ color: "var(--text)", fontSize: "1rem", fontWeight: 700, marginBottom: "1rem" }}>مصدر جديد</h3>
           <div style={{ display: "grid", gap: "0.85rem" }}>
-            <AdminInput label="العنوان *" value={title} onChange={setTitle} placeholder="مثال: Ollama" required />
-            <AdminInput label="URL *" value={url} onChange={setUrl} placeholder="https://ollama.com" required />
-            <AdminInput label="التصنيف" value={category} onChange={setCategory} placeholder="محركات تشغيل" />
-            <AdminTextarea label="الوصف" value={description} onChange={setDescription} placeholder="وصف المورد..." />
+            <SimpleInput label="العنوان *" value={title} onChange={setTitle} placeholder="Ollama" required />
+            <SimpleInput label="URL *" value={url} onChange={setUrl} placeholder="https://ollama.com" required />
+            <SimpleInput label="التصنيف" value={category} onChange={setCategory} placeholder="محركات تشغيل" />
+            <SimpleTextarea label="الوصف" value={description} onChange={setDescription} placeholder="وصف المورد..." />
           </div>
           <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
             <button type="submit" className="btn btn-primary">حفظ</button>
@@ -517,7 +257,6 @@ function ResourcesManager() {
           </div>
         </form>
       )}
-
       {loading ? (
         <p style={{ color: "var(--text-3)" }}>جاري التحميل...</p>
       ) : (
@@ -526,15 +265,11 @@ function ResourcesManager() {
             <div key={r.url} className="card" style={{ padding: "1rem 1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
-                  <span style={{ color: "var(--accent)", fontSize: "0.68rem", fontFamily: "var(--font-mono)", background: "#4f80ff14", padding: "0.1rem 0.5rem", borderRadius: "4px" }}>
-                    {r.category}
-                  </span>
+                  <span style={{ color: "var(--accent)", fontSize: "0.68rem", fontFamily: "var(--font-mono)", background: "#4f80ff14", padding: "0.1rem 0.5rem", borderRadius: "4px" }}>{r.category}</span>
                   <span style={{ color: "var(--text-3)", fontSize: "0.68rem", fontFamily: "var(--font-mono)" }}>{r.domain}</span>
                 </div>
                 <h4 style={{ color: "var(--text)", fontSize: "0.88rem", fontWeight: 600 }}>{r.title}</h4>
-                <p style={{ color: "var(--text-2)", fontSize: "0.78rem", marginTop: "0.2rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {r.description}
-                </p>
+                <p style={{ color: "var(--text-2)", fontSize: "0.78rem", marginTop: "0.2rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.description}</p>
               </div>
               <button onClick={() => handleDelete(r.url)} style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: "6px", padding: "0.4rem 0.6rem", cursor: "pointer", color: "var(--danger)", flexShrink: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
@@ -548,86 +283,24 @@ function ResourcesManager() {
 }
 
 // ============================================================
-// SHARED UI HELPERS
-// ============================================================
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      color: "var(--accent)",
-      fontSize: "0.78rem",
-      fontWeight: 700,
-      textTransform: "uppercase",
-      letterSpacing: "0.06em",
-      fontFamily: "var(--font-mono)",
-      marginBottom: "0.6rem",
-      paddingBottom: "0.4rem",
-      borderBottom: "1px solid var(--border)",
-    }}>
-      {children}
-    </div>
-  );
-}
-
-function MiniBtn({ children, onClick, color, title }: {
-  children: React.ReactNode; onClick: () => void; color: "accent" | "danger"; title?: string;
-}) {
-  const styles = color === "accent"
-    ? { background: "rgba(79,128,255,0.1)", border: "1px solid rgba(79,128,255,0.3)", color: "var(--accent)" }
-    : { background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", color: "var(--danger)" };
-  return (
-    <button type="button" onClick={onClick} title={title} style={{
-      ...styles,
-      borderRadius: "6px",
-      padding: "0.35rem 0.8rem",
-      cursor: "pointer",
-      fontSize: "0.78rem",
-      fontWeight: 600,
-      fontFamily: "inherit",
-      width: "fit-content",
-    }}>
-      {children}
-    </button>
-  );
-}
-
-function AdminInput({ label, value, onChange, placeholder, required }: {
+function SimpleInput({ label, value, onChange, placeholder, required }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; required?: boolean;
 }) {
   return (
     <div>
-      <label style={{ display: "block", color: "var(--text-2)", fontSize: "0.78rem", fontWeight: 600, marginBottom: "0.3rem" }}>
-        {label}
-      </label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        required={required}
-        className="videos-search-input"
-        style={{ padding: "0.6rem 0.85rem" }}
-      />
+      <label style={{ display: "block", color: "var(--text-2)", fontSize: "0.78rem", fontWeight: 600, marginBottom: "0.3rem" }}>{label}</label>
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} required={required} className="videos-search-input" style={{ padding: "0.6rem 0.85rem" }} />
     </div>
   );
 }
 
-function AdminTextarea({ label, value, onChange, placeholder }: {
+function SimpleTextarea({ label, value, onChange, placeholder }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string;
 }) {
   return (
     <div>
-      <label style={{ display: "block", color: "var(--text-2)", fontSize: "0.78rem", fontWeight: 600, marginBottom: "0.3rem" }}>
-        {label}
-      </label>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={3}
-        className="videos-search-input"
-        style={{ padding: "0.6rem 0.85rem", resize: "vertical", fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}
-      />
+      <label style={{ display: "block", color: "var(--text-2)", fontSize: "0.78rem", fontWeight: 600, marginBottom: "0.3rem" }}>{label}</label>
+      <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={3} className="videos-search-input" style={{ padding: "0.6rem 0.85rem", resize: "vertical", fontFamily: "inherit" }} />
     </div>
   );
 }
