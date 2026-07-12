@@ -3,10 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-// ============================================================
-// Admin Dashboard — LocalBench AI
-// ============================================================
-
 const ADMIN_PASSWORD = "localbench-admin-2025";
 
 interface VideoItem {
@@ -28,12 +24,32 @@ interface ResourceItem {
   description: string;
 }
 
+interface ModelEntry {
+  name: string;
+  quantization: string;
+  hardware: string;
+  type: "local" | "cloud";
+}
+
+interface PromptEntry {
+  id: number;
+  title: string;
+  content: string;
+}
+
+interface FileEntry {
+  id: number;
+  modelName: string;
+  promptTitle: string;
+  previewHtml: string;
+  sourceCode: string;
+}
+
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [pwInput, setPwInput] = useState("");
   const [pwError, setPwError] = useState(false);
 
-  // Check sessionStorage for auth
   useEffect(() => {
     if (sessionStorage.getItem("admin_authed") === "1") setAuthed(true);
   }, []);
@@ -53,7 +69,6 @@ export default function AdminPage() {
     setPwInput("");
   }
 
-  // ---------- LOGIN SCREEN ----------
   if (!authed) {
     return (
       <div className="container" style={{ maxWidth: 400, marginTop: "6rem", marginBottom: "6rem" }}>
@@ -92,10 +107,8 @@ export default function AdminPage() {
     );
   }
 
-  // ---------- DASHBOARD ----------
   return (
     <div className="container" style={{ paddingTop: "2rem", paddingBottom: "4rem" }}>
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem", flexWrap: "wrap", gap: "1rem" }}>
         <div>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 800, color: "var(--text)" }}>
@@ -110,7 +123,6 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* Tabs */}
       <TabSection />
     </div>
   );
@@ -148,7 +160,7 @@ function TabSection() {
 }
 
 // ============================================================
-// VIDEOS MANAGER
+// VIDEOS MANAGER — Full CRUD with Models, Prompts, Files
 // ============================================================
 
 function VideosManager() {
@@ -158,12 +170,17 @@ function VideosManager() {
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
-  // Form state
+  // Basic fields
   const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [youtubeId, setYoutubeId] = useState("");
+
+  // Dynamic arrays
+  const [models, setModels] = useState<ModelEntry[]>([]);
+  const [prompts, setPrompts] = useState<PromptEntry[]>([]);
+  const [files, setFiles] = useState<FileEntry[]>([]);
 
   function loadVideos() {
     fetch("/api/videos")
@@ -176,17 +193,16 @@ function VideosManager() {
 
   function resetForm() {
     setSlug(""); setTitle(""); setDescription(""); setCategory(""); setYoutubeId("");
+    setModels([]); setPrompts([]); setFiles([]);
     setEditingSlug(null);
     setShowForm(false);
   }
 
-  // Start edit — يجيب الفيديو كامل ويملأ الفورم
   async function handleEdit(v: VideoItem) {
     setEditingSlug(v.slug);
     setShowForm(true);
     setMsg(null);
 
-    // GET full video data
     try {
       const res = await fetch(`/api/videos/${v.slug}`);
       const data = await res.json();
@@ -195,6 +211,9 @@ function VideosManager() {
       setCategory(data.category || "");
       setYoutubeId(data.youtubeId || "");
       setSlug(v.slug);
+      setModels(data.models || []);
+      setPrompts(data.prompts || []);
+      setFiles(data.files || []);
     } catch {
       setMsg({ type: "err", text: "❌ فشل تحميل بيانات الفيديو" });
     }
@@ -204,12 +223,13 @@ function VideosManager() {
     e.preventDefault();
     setMsg(null);
 
-    // Edit mode
+    const payload = { title, description, category, youtubeId, models, prompts, files };
+
     if (editingSlug) {
       const res = await fetch(`/api/videos/${editingSlug}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, category, youtubeId }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (res.ok) {
@@ -222,13 +242,11 @@ function VideosManager() {
       return;
     }
 
-    // Add mode
     const finalSlug = slug || title.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\w\-]/g, "").slice(0, 60);
-
     const res = await fetch("/api/videos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: finalSlug, title, description, category, youtubeId }),
+      body: JSON.stringify({ slug: finalSlug, ...payload }),
     });
     const data = await res.json();
 
@@ -258,9 +276,7 @@ function VideosManager() {
     <div>
       {msg && (
         <div style={{
-          padding: "0.75rem 1rem",
-          marginBottom: "1rem",
-          borderRadius: "8px",
+          padding: "0.75rem 1rem", marginBottom: "1rem", borderRadius: "8px",
           background: msg.type === "ok" ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
           border: `1px solid ${msg.type === "ok" ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`,
           color: msg.type === "ok" ? "var(--success)" : "var(--danger)",
@@ -270,18 +286,12 @@ function VideosManager() {
         </div>
       )}
 
-      {/* Add/Edit button */}
       {!showForm && (
-        <button
-          onClick={() => { resetForm(); setShowForm(true); }}
-          className="btn btn-primary"
-          style={{ marginBottom: "1.5rem" }}
-        >
+        <button onClick={() => { resetForm(); setShowForm(true); }} className="btn btn-primary" style={{ marginBottom: "1.5rem" }}>
           + إضافة فيديو
         </button>
       )}
 
-      {/* Form (Add or Edit) */}
       {showForm && (
         <form onSubmit={handleSubmit} className="card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
@@ -290,7 +300,10 @@ function VideosManager() {
             </h3>
             <button type="button" onClick={resetForm} className="btn btn-ghost" style={{ fontSize: "0.78rem" }}>✕ إغلاق</button>
           </div>
-          <div style={{ display: "grid", gap: "0.85rem" }}>
+
+          {/* Basic Info */}
+          <SectionLabel>📋 المعلومات الأساسية</SectionLabel>
+          <div style={{ display: "grid", gap: "0.85rem", marginBottom: "1.5rem" }}>
             <AdminInput label="العنوان *" value={title} onChange={setTitle} placeholder="مثال: تجربة Qwen 3 على AMD" required />
             <AdminInput label="YouTube Video ID *" value={youtubeId} onChange={setYoutubeId} placeholder="مثال: YQR6u0Gwdao" required />
             {!editingSlug && (
@@ -299,17 +312,83 @@ function VideosManager() {
             <AdminInput label="التصنيف" value={category} onChange={setCategory} placeholder="اختبار LLM" />
             <AdminTextarea label="الوصف" value={description} onChange={setDescription} placeholder="وصف الفيديو..." />
           </div>
+
+          {/* Models Section */}
+          <SectionLabel>🧠 النماذج المختبرة ({models.length})</SectionLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.5rem" }}>
+            {models.map((m, i) => (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto auto", gap: "0.5rem", alignItems: "end" }}>
+                <AdminInput label="الاسم" value={m.name} onChange={(v) => { const a = [...models]; a[i] = { ...a[i], name: v }; setModels(a); }} placeholder="Qwen 3.5 9B" />
+                <AdminInput label="Quantization" value={m.quantization} onChange={(v) => { const a = [...models]; a[i] = { ...a[i], quantization: v }; setModels(a); }} placeholder="Q4_K_M" />
+                <AdminInput label="العتاد" value={m.hardware} onChange={(v) => { const a = [...models]; a[i] = { ...a[i], hardware: v }; setModels(a); }} placeholder="RX 6600 XT 8GB" />
+                <select
+                  value={m.type}
+                  onChange={(e) => { const a = [...models]; a[i] = { ...a[i], type: e.target.value as "local" | "cloud" }; setModels(a); }}
+                  className="videos-search-input"
+                  style={{ padding: "0.6rem 0.85rem", height: "38px", width: "90px" }}
+                >
+                  <option value="local">محلي</option>
+                  <option value="cloud">سحابي</option>
+                </select>
+                <MiniBtn onClick={() => setModels(models.filter((_, j) => j !== i))} color="danger" title="حذف">🗑️</MiniBtn>
+              </div>
+            ))}
+            <MiniBtn onClick={() => setModels([...models, { name: "", quantization: "", hardware: "", type: "local" }])} color="accent">
+              + إضافة نموذج
+            </MiniBtn>
+          </div>
+
+          {/* Prompts Section */}
+          <SectionLabel>📝 الـ Prompts ({prompts.length})</SectionLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.5rem" }}>
+            {prompts.map((p, i) => (
+              <div key={i} className="card" style={{ padding: "1rem", background: "var(--bg)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                  <span style={{ color: "var(--accent)", fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>#{p.id}</span>
+                  <MiniBtn onClick={() => setPrompts(prompts.filter((_, j) => j !== i))} color="danger" title="حذف">🗑️</MiniBtn>
+                </div>
+                <div style={{ display: "grid", gap: "0.5rem" }}>
+                  <AdminInput label="العنوان" value={p.title} onChange={(v) => { const a = [...prompts]; a[i] = { ...a[i], title: v }; setPrompts(a); }} placeholder="اختبار كتابة كود React" />
+                  <AdminTextarea label="نص الـ Prompt" value={p.content} onChange={(v) => { const a = [...prompts]; a[i] = { ...a[i], content: v }; setPrompts(a); }} placeholder="اكتب الـ prompt كامل..." />
+                </div>
+              </div>
+            ))}
+            <MiniBtn onClick={() => setPrompts([...prompts, { id: prompts.length + 1, title: "", content: "" }])} color="accent">
+              + إضافة Prompt
+            </MiniBtn>
+          </div>
+
+          {/* Output Files Section */}
+          <SectionLabel>📂 ملفات الإخراج / Live HTML ({files.length})</SectionLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.5rem" }}>
+            {files.map((f, i) => (
+              <div key={i} className="card" style={{ padding: "1rem", background: "var(--bg)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                  <span style={{ color: "var(--accent)", fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>#{f.id}</span>
+                  <MiniBtn onClick={() => setFiles(files.filter((_, j) => j !== i))} color="danger" title="حذف">🗑️</MiniBtn>
+                </div>
+                <div style={{ display: "grid", gap: "0.5rem" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                    <AdminInput label="اسم النموذج" value={f.modelName} onChange={(v) => { const a = [...files]; a[i] = { ...a[i], modelName: v }; setFiles(a); }} placeholder="Qwen 3.5 9B" />
+                    <AdminInput label="عنوان الـ Prompt" value={f.promptTitle} onChange={(v) => { const a = [...files]; a[i] = { ...a[i], promptTitle: v }; setFiles(a); }} placeholder="React Dashboard" />
+                  </div>
+                  <AdminTextarea label="HTML للمعاينة (Preview)" value={f.previewHtml} onChange={(v) => { const a = [...files]; a[i] = { ...a[i], previewHtml: v }; setFiles(a); }} placeholder="<!DOCTYPE html>..." />
+                  <AdminTextarea label="الكود المصدري (Source Code)" value={f.sourceCode} onChange={(v) => { const a = [...files]; a[i] = { ...a[i], sourceCode: v }; setFiles(a); }} placeholder="import React..." />
+                </div>
+              </div>
+            ))}
+            <MiniBtn onClick={() => setFiles([...files, { id: files.length + 1, modelName: "", promptTitle: "", previewHtml: "", sourceCode: "" }])} color="accent">
+              + إضافة Output File
+            </MiniBtn>
+          </div>
+
+          {/* Submit */}
           <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
             <button type="submit" className="btn btn-primary">
               {editingSlug ? "💾 حفظ التعديلات" : "حفظ"}
             </button>
             <button type="button" onClick={resetForm} className="btn btn-ghost">إلغاء</button>
           </div>
-          {!editingSlug && (
-            <p style={{ color: "var(--text-3)", fontSize: "0.72rem", marginTop: "0.75rem" }}>
-              💡 الـ prompts والـ output files تقدر تضيفها بعدين من MongoDB Atlas أو API
-            </p>
-          )}
         </form>
       )}
 
@@ -336,41 +415,12 @@ function VideosManager() {
                   <span style={{ color: "var(--text-3)", fontSize: "0.72rem" }}>{v.fileCount} files</span>
                 </div>
               </div>
-              {/* Edit + Delete buttons */}
               <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0 }}>
-                <button
-                  onClick={() => handleEdit(v)}
-                  style={{
-                    background: "rgba(79,128,255,0.1)",
-                    border: "1px solid rgba(79,128,255,0.3)",
-                    borderRadius: "6px",
-                    padding: "0.4rem 0.6rem",
-                    cursor: "pointer",
-                    color: "var(--accent)",
-                  }}
-                  title="تعديل"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
+                <button onClick={() => handleEdit(v)} style={{ background: "rgba(79,128,255,0.1)", border: "1px solid rgba(79,128,255,0.3)", borderRadius: "6px", padding: "0.4rem 0.6rem", cursor: "pointer", color: "var(--accent)" }} title="تعديل">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                 </button>
-                <button
-                  onClick={() => handleDelete(v.slug)}
-                  style={{
-                    background: "rgba(248,113,113,0.1)",
-                    border: "1px solid rgba(248,113,113,0.3)",
-                    borderRadius: "6px",
-                    padding: "0.4rem 0.6rem",
-                    cursor: "pointer",
-                    color: "var(--danger)",
-                  }}
-                  title="حذف"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
+                <button onClick={() => handleDelete(v.slug)} style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: "6px", padding: "0.4rem 0.6rem", cursor: "pointer", color: "var(--danger)" }} title="حذف">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
                 </button>
               </div>
             </div>
@@ -486,14 +536,8 @@ function ResourcesManager() {
                   {r.description}
                 </p>
               </div>
-              <button
-                onClick={() => handleDelete(r.url)}
-                style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: "6px", padding: "0.4rem 0.6rem", cursor: "pointer", color: "var(--danger)", flexShrink: 0 }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
+              <button onClick={() => handleDelete(r.url)} style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderRadius: "6px", padding: "0.4rem 0.6rem", cursor: "pointer", color: "var(--danger)", flexShrink: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
               </button>
             </div>
           ))}
@@ -504,8 +548,48 @@ function ResourcesManager() {
 }
 
 // ============================================================
-// HELPERS
+// SHARED UI HELPERS
 // ============================================================
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      color: "var(--accent)",
+      fontSize: "0.78rem",
+      fontWeight: 700,
+      textTransform: "uppercase",
+      letterSpacing: "0.06em",
+      fontFamily: "var(--font-mono)",
+      marginBottom: "0.6rem",
+      paddingBottom: "0.4rem",
+      borderBottom: "1px solid var(--border)",
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function MiniBtn({ children, onClick, color, title }: {
+  children: React.ReactNode; onClick: () => void; color: "accent" | "danger"; title?: string;
+}) {
+  const styles = color === "accent"
+    ? { background: "rgba(79,128,255,0.1)", border: "1px solid rgba(79,128,255,0.3)", color: "var(--accent)" }
+    : { background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", color: "var(--danger)" };
+  return (
+    <button type="button" onClick={onClick} title={title} style={{
+      ...styles,
+      borderRadius: "6px",
+      padding: "0.35rem 0.8rem",
+      cursor: "pointer",
+      fontSize: "0.78rem",
+      fontWeight: 600,
+      fontFamily: "inherit",
+      width: "fit-content",
+    }}>
+      {children}
+    </button>
+  );
+}
 
 function AdminInput({ label, value, onChange, placeholder, required }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; required?: boolean;
@@ -542,7 +626,7 @@ function AdminTextarea({ label, value, onChange, placeholder }: {
         placeholder={placeholder}
         rows={3}
         className="videos-search-input"
-        style={{ padding: "0.6rem 0.85rem", resize: "vertical", fontFamily: "inherit" }}
+        style={{ padding: "0.6rem 0.85rem", resize: "vertical", fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}
       />
     </div>
   );
